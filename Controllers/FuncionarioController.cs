@@ -17,29 +17,29 @@ public class FuncionarioController : ControllerBase
     }
 
     [HttpGet]
-    public ActionResult<ICollection<Funcionario>> Get()
+    public async Task<ActionResult> Get()
     {
-        var funcionarios = _services.BuscaFuncionarios();
+        var funcionarios = await _services.BuscaFuncionarios();
 
         if(funcionarios is null)
         {
             return NotFound();
         }
 
-        return funcionarios;
+        return Ok(funcionarios);
     }
 
     [HttpPost]
-    public ActionResult Post(Funcionario funcionario)
+    public async Task<ActionResult> Post(Funcionario funcionario)
     {
-        _services.CadastraFuncionario(funcionario);
+        await _services.CadastraFuncionario(funcionario);
         return Ok(funcionario);
     }
 
     [HttpDelete]
-    public ActionResult Delete(int id)
+    public async Task<ActionResult> Delete(int id)
     {
-        _services.DeletaFuncionario(id);
+        await _services.DeletaFuncionario(id);
         return Ok("Funcionario excluido com sucesso!!");
     }
 }

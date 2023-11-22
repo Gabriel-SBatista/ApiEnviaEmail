@@ -16,9 +16,9 @@ public class EnvioController : ControllerBase
     }
 
     [HttpGet]
-    public ICollection<Envio> Get()
+    public async Task<ActionResult<ICollection<Envio>>> Get()
     {
-        var envios = _envioService.BuscaEnvios();
-        return envios;
+        var envios = await _envioService.BuscaEnvios();
+        return Ok(envios);
     }
 }

@@ -1,5 +1,6 @@
 ﻿using APIEnviaEmail.Context;
 using APIEnviaEmail.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace APIEnviaEmail.Services;
 
@@ -12,31 +13,31 @@ public class FuncionarioService
         _context = context;
     }
 
-    public void CadastraFuncionario(Funcionario funcionario)
+    public async Task CadastraFuncionario(Funcionario funcionario)
     {
-        _context.Funcionarios.Add(funcionario);
-        _context.SaveChanges();
+        await _context.Funcionarios.AddAsync(funcionario);
+        await _context.SaveChangesAsync();
     }
 
-    public Funcionario? BuscaFuncionario(int id)
+    public async Task<Funcionario?> BuscaFuncionario(int id)
     {
-        var funcionario = _context.Funcionarios.FirstOrDefault(f => f.CodigoFuncionario == id);
+        var funcionario = await _context.Funcionarios.FirstOrDefaultAsync(f => f.CodigoFuncionario == id);
 
         return funcionario;
     }
 
-    public List<Funcionario> BuscaFuncionarios()
+    public async Task<List<Funcionario>> BuscaFuncionarios()
     {
-        var funcionarios = _context.Funcionarios.ToList();
+        var funcionarios = await _context.Funcionarios.ToListAsync();
 
         return funcionarios;
     }
 
-    public void DeletaFuncionario(int id)
+    public async Task DeletaFuncionario(int id)
     {
-        var funcionario = _context.Funcionarios.Find(id);
+        var funcionario = await _context.Funcionarios.FindAsync(id);
 
         _context.Remove(funcionario);
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
     }
 }

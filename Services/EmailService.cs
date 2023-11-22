@@ -19,26 +19,36 @@ public class EmailService
         _smtpPassword = smtpPassword;
     }
 
-    public async Task EnviarEmailAsync(string destinatario, string assunto, string corpo, Stream file)
+    public async Task<bool> EnviarEmailAsync(string destinatario, string assunto, string corpo, Stream file)
     {
-        using (SmtpClient clienteSmtp = new SmtpClient(_smtpServer))
+        try
         {
-            clienteSmtp.Port = _smtpPort;
-            clienteSmtp.Credentials = new NetworkCredential(_smtpUsername, _smtpPassword);
-            clienteSmtp.EnableSsl = true;
-
-            using (MailMessage mensagem = new MailMessage())
+            using (SmtpClient clienteSmtp = new SmtpClient(_smtpServer))
             {
-                mensagem.From = new MailAddress(_smtpUsername);
+                clienteSmtp.Port = _smtpPort;
+                clienteSmtp.Credentials = new NetworkCredential(_smtpUsername, _smtpPassword);
+                clienteSmtp.EnableSsl = true;
 
-                mensagem.To.Add(destinatario);
+                using (MailMessage mensagem = new MailMessage())
+                {
+                    mensagem.From = new MailAddress(_smtpUsername);
 
-                mensagem.Subject = assunto;
-                mensagem.Body = corpo;
-                mensagem.Attachments.Add(new Attachment(file, "holerite.pdf"));
+                    mensagem.To.Add(destinatario);
 
-                await clienteSmtp.SendMailAsync(mensagem);
+                    mensagem.Subject = assunto;
+                    mensagem.Body = corpo;
+                    mensagem.Attachments.Add(new Attachment(file, "holerite.pdf"));
+
+                    await clienteSmtp.SendMailAsync(mensagem);
+                }
             }
+
+            return true;
         }
+        catch
+        {
+            return false;
+        }
+        
     }
 }

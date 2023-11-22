@@ -1,5 +1,6 @@
 ﻿using APIEnviaEmail.Context;
 using APIEnviaEmail.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace APIEnviaEmail.Services;
 
@@ -12,15 +13,21 @@ public class EnvioService
         _context = context;
     }
 
-    public void SalvaEnvio(Envio envio)
+    public async Task SalvaEnvio(Envio envio)
     {
-        _context.Envios.Add(envio);
-        _context.SaveChanges();
+        await _context.Envios.AddAsync(envio);
+        await _context.SaveChangesAsync();
     }
 
-    public List<Envio> BuscaEnvios()
+    public async Task<List<Envio>> BuscaEnvios()
     {
-        var envios = _context.Envios.ToList();
+        var envios = await _context.Envios.ToListAsync();
         return envios;
+    }
+
+    public async Task<Envio> BuscaEnvio(Guid id)
+    {
+        var envio = await _context.Envios.FindAsync(id);
+        return envio;
     }
 }

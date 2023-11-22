@@ -10,16 +10,18 @@ public class HoleriteService
     private readonly EmailService _emailService;
     private readonly StorageService _storageService;
     private readonly EnvioService _envioService;
+    private readonly IConfiguration _configuration;
 
-    public HoleriteService(FuncionarioService funcionarioService, EmailService emailService, StorageService storageService, EnvioService envioService)
+    public HoleriteService(FuncionarioService funcionarioService, EmailService emailService, StorageService storageService, EnvioService envioService, IConfiguration configuration)
     {
         _funcionarioService = funcionarioService;
         _emailService = emailService;
         _storageService = storageService;
         _envioService = envioService;
+        _configuration = configuration;
     }  
 
-    public async Task EnviaHolerites(ICollection<IFormFile> files)
+    public async Task PercorreZipEnviaHolerites(ICollection<IFormFile> files)
     {
         foreach (var file in files)
         {
@@ -28,42 +30,63 @@ public class HoleriteService
             {
                 foreach (var entrada in arquivoZip.Entries)
                 {
-                    var funcionarioID = BuscaIdFuncionario(entrada);
-                    var funcionario = _funcionarioService.BuscaFuncionario(funcionarioID);
-                    var mes = BuscaMes(entrada);
-                    var tipoHolerite = TipoHolerite(entrada);                
-                    Envio envio = new Envio();
+                    var funcionarioID = BuscaIdFuncionario(entrada.Name);
+                    var funcionario = await _funcionarioService.BuscaFuncionario(funcionarioID);
+                    var mes = BuscaMes(entrada.Name);
+                    var tipoHolerite = TipoHolerite(entrada.Name);
+                    var streamEnvia = entrada.Open();
 
-                    if (funcionario is not null)
-                    {
-                        string assunto = $"Recibo de {tipoHolerite} do mês de {mes}";
-                        string corpo = $"Olá, {funcionario.Nome}\nSegue o seu recibo de {tipoHolerite} do mês de {mes} em anexo.\nAbraços,\nRH";
-                        var streamEnvia = entrada.Open();
-                        await _emailService.EnviarEmailAsync(funcionario.Email, assunto, corpo, streamEnvia).ContinueWith(task =>
-                        {
-                            if (task.Status == TaskStatus.RanToCompletion)
-                                envio.Sucesso = true;
-                        });
-                        envio.Funcionario = funcionario.CodigoFuncionario;
-                    }
-
-                    var streamUpload = entrada.Open();
-                    await _storageService.UploadArquivoAsync(entrada.Name, streamUpload);
-                                      
-                    envio.DataEnvio = DateTime.Now;
-                    envio.Nome = entrada.Name;
-                    envio.HoleriteUrl = $"https://gabrielsb-bucket.s3.sa-east-1.amazonaws.com/{entrada.Name}";
-                    _envioService.SalvaEnvio(envio);
+                    await EnviaEmail(tipoHolerite, mes, funcionario, streamEnvia, entrada.Name);                                                                                           
                 }
             }
         }
     }
 
-    public static int BuscaIdFuncionario(ZipArchiveEntry entrada)
+    public async Task EnviaEmail(string tipoHolerite, string mes, Funcionario funcionario, Stream streamEnvia, string nomeArquivo)
+    {
+        Envio envio = new Envio();
+
+        string assunto = $"Recibo de {tipoHolerite} do mês de {mes}";
+        string corpo = $"Olá, {funcionario.Nome}\nSegue o seu recibo de {tipoHolerite} do mês de {mes} em anexo.\nAbraços,\nRH";
+
+        if (funcionario is not null)
+        {
+            var sucesso = await _emailService.EnviarEmailAsync(funcionario.Email, assunto, corpo, streamEnvia);
+
+            if (sucesso == true)
+                envio.Sucesso = true;
+
+            envio.Funcionario = funcionario.CodigoFuncionario;
+        }
+
+        var url = _configuration.GetSection("AWSS3").GetRequiredSection("DefaultUrl").Value;
+        envio.DataEnvio = DateTime.Now;
+        envio.Nome = nomeArquivo;
+        envio.HoleriteUrl = $"{url}{nomeArquivo}";
+        await _envioService.SalvaEnvio(envio);
+    }
+
+    public async Task EnviaHoleritesStorage(ICollection<IFormFile> files)
+    {
+        foreach (var file in files)
+        {
+            using (var stream = file.OpenReadStream())
+            using (var arquivoZip = new ZipArchive(stream, ZipArchiveMode.Read))
+            {
+                foreach (var entrada in arquivoZip.Entries)
+                {
+                    var streamUpload = entrada.Open();
+                    await _storageService.UploadArquivoAsync(entrada.Name, streamUpload);
+                }
+            }
+        }
+    }
+
+    public int BuscaIdFuncionario(string nome)
     {
         string stringFuncionarioID = "";
 
-        foreach (var c in entrada.Name)
+        foreach (var c in nome)
         {
             if (c.ToString() == "_")
             {
@@ -78,10 +101,10 @@ public class HoleriteService
         return funcionarioID;
     }
 
-    public static string TipoHolerite(ZipArchiveEntry entrada)
+    public string TipoHolerite(string nome)
     {
         string tipoHolerite = "";
-        foreach (var c in entrada.Name)
+        foreach (var c in nome)
         {
             if (c.ToString() == "A")
             {
@@ -96,12 +119,12 @@ public class HoleriteService
         return tipoHolerite;
     }
 
-    public static string BuscaMes(ZipArchiveEntry entrada)
+    public string BuscaMes(string nome)
     {
         int i = 0;
         string mes = "";
 
-        foreach (var c in entrada.Name)
+        foreach (var c in nome)
         {
             if (i == 1 && c.ToString() != "_")
             {

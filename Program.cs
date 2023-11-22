@@ -1,6 +1,7 @@
 using APIEnviaEmail.Context;
 using APIEnviaEmail.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,10 +22,10 @@ builder.Services.AddScoped<EnvioService>();
 builder.Services.AddScoped<StorageService>();
 builder.Services.AddScoped<EmailService>(provider =>
 {
-    string smtpServer = "smtp.gmail.com";
-    int smtpPort = 587;
-    string smtpUsername = "gabrielsb1028@gmail.com";
-    string smtpPassword = "gzff uxjo iizo feif";
+    string smtpServer = builder.Configuration.GetSection("SMTP").GetRequiredSection("Server").Value;
+    int smtpPort = int.Parse(builder.Configuration.GetSection("SMTP").GetRequiredSection("Porta").Value);
+    string smtpUsername = builder.Configuration.GetSection("SMTP").GetRequiredSection("Username").Value;
+    string smtpPassword = builder.Configuration.GetSection("SMTP").GetRequiredSection("Password").Value;
 
     return new EmailService(smtpServer, smtpPort, smtpUsername, smtpPassword);
 });
