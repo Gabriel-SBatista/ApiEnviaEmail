@@ -30,13 +30,16 @@ public class HoleriteService
             {
                 foreach (var entrada in arquivoZip.Entries)
                 {
-                    var funcionarioID = BuscaIdFuncionario(entrada.Name);
-                    var funcionario = await _funcionarioService.BuscaFuncionario(funcionarioID);
-                    var mes = BuscaMes(entrada.Name);
-                    var tipoHolerite = TipoHolerite(entrada.Name);
-                    var streamEnvia = entrada.Open();
+                    var vetorTitulo = SeparaHoleriteNome(entrada.Name);
+                    var funcionario = await _funcionarioService.BuscaFuncionario(int.Parse(vetorTitulo[0]));
+                    var mes = BuscaMes(int.Parse(vetorTitulo[1]));
+                    var streamEnviaEmail = entrada.Open();
 
-                    await EnviaEmail(tipoHolerite, mes, funcionario, streamEnvia, entrada.Name);                                                                                           
+                    await EnviaEmail(vetorTitulo[2], mes, funcionario, streamEnviaEmail, entrada.Name);
+
+                    var streamEnviaStorage = entrada.Open();
+
+                    await _storageService.UploadArquivoAsync(entrada.Name, streamEnviaStorage);
                 }
             }
         }
@@ -44,6 +47,11 @@ public class HoleriteService
 
     public async Task EnviaEmail(string tipoHolerite, string mes, Funcionario funcionario, Stream streamEnvia, string nomeArquivo)
     {
+        if (tipoHolerite == "A")
+            tipoHolerite = "Adiantamento";
+        else
+            tipoHolerite = "Pagamento";
+
         Envio envio = new Envio();
 
         string assunto = $"Recibo de {tipoHolerite} do mês de {mes}";
@@ -66,117 +74,18 @@ public class HoleriteService
         await _envioService.SalvaEnvio(envio);
     }
 
-    public async Task EnviaHoleritesStorage(ICollection<IFormFile> files)
+    public string BuscaMes(int mes)
     {
-        foreach (var file in files)
-        {
-            using (var stream = file.OpenReadStream())
-            using (var arquivoZip = new ZipArchive(stream, ZipArchiveMode.Read))
-            {
-                foreach (var entrada in arquivoZip.Entries)
-                {
-                    var streamUpload = entrada.Open();
-                    await _storageService.UploadArquivoAsync(entrada.Name, streamUpload);
-                }
-            }
-        }
+        DateTime data = new DateTime(1111, mes, 11);
+
+        string mesNome = data.ToString("MMMM");
+
+        return mesNome;
     }
 
-    public int BuscaIdFuncionario(string nome)
+    public string[] SeparaHoleriteNome(string nome)
     {
-        string stringFuncionarioID = "";
-
-        foreach (var c in nome)
-        {
-            if (c.ToString() == "_")
-            {
-                break;
-            }
-
-            stringFuncionarioID += c.ToString();
-        }
-
-        int funcionarioID = int.Parse(stringFuncionarioID);
-
-        return funcionarioID;
-    }
-
-    public string TipoHolerite(string nome)
-    {
-        string tipoHolerite = "";
-        foreach (var c in nome)
-        {
-            if (c.ToString() == "A")
-            {
-                tipoHolerite = "Adiantamento";
-            }
-            else if (c.ToString() == "P")
-            {
-                tipoHolerite = "Pagamento";
-            }
-        }
-
-        return tipoHolerite;
-    }
-
-    public string BuscaMes(string nome)
-    {
-        int i = 0;
-        string mes = "";
-
-        foreach (var c in nome)
-        {
-            if (i == 1 && c.ToString() != "_")
-            {
-                mes += c.ToString();
-            }
-
-            if (c.ToString() == "_")
-            {
-                i++;
-            }
-        }
-
-        switch(mes)
-        {
-            case "1":
-                mes = "Janeiro";
-                break;
-            case "2":
-                mes = "Fevereiro";
-                break;
-            case "3":
-                mes = "Março";
-                break;
-            case "4":
-                mes = "Abril";
-                break;
-            case "5":
-                mes = "Maio";
-                break;
-            case "6":
-                mes = "Junho";
-                break;
-            case "7":
-                mes = "Julho";
-                break;
-            case "8":
-                mes = "Agosto";
-                break;
-            case "9":
-                mes = "Setembro";
-                break;
-            case "10":
-                mes = "Outubro";
-                break;
-            case "11":
-                mes = "Novembro";
-                break;
-            case "12":
-                mes = "Dezembro";
-                break;
-        }
-
-        return mes;
+        string[] vetorTitulo = nome.Split('_');
+        return vetorTitulo;
     }
 }

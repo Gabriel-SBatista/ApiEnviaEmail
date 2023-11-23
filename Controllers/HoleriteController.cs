@@ -29,28 +29,26 @@ public class HoleriteController : ControllerBase
         }
 
         await _holeriteService.PercorreZipEnviaHolerites(files);
-        await _holeriteService.EnviaHoleritesStorage(files);
         return Ok("Arquivos enviados com sucesso!");
     }
 
     [HttpPost("reenvia")]
     public async Task<ActionResult> ReenviaHolerite(Guid id)
     {
-        var envio = _envioService.BuscaEnvio(id);
+        var envio = await _envioService.BuscaEnvio(id);
 
         if(envio is null)
         {
             return NotFound("Envio não encontrado");
         }
 
-        var funcionarioID = _holeriteService.BuscaIdFuncionario(envio.Nome);
-        var funcionario = _funcionarioService.BuscaFuncionario(funcionarioID);
-        var mes = _holeriteService.BuscaMes(envio.Nome);
-        var tipoHolerite = _holeriteService.TipoHolerite(envio.Nome);
+        var vetorNome = _holeriteService.SeparaHoleriteNome(envio.Nome);
+        var funcionario = await _funcionarioService.BuscaFuncionario(int.Parse(vetorNome[0]));
+        var mes = _holeriteService.BuscaMes(int.Parse(vetorNome[1]));
 
         var stream = await _storageService.DownloadArquivoAsync(envio.Nome);
         
-        await _holeriteService.EnviaEmail(tipoHolerite, mes, funcionario, stream, envio.Nome);
+        await _holeriteService.EnviaEmail(vetorNome[2], mes, funcionario, stream, envio.Nome);
 
         return Ok("Email reenviado com sucesso!!");
     }
