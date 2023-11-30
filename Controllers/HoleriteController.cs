@@ -1,4 +1,6 @@
-﻿using APIEnviaEmail.Services;
+﻿using APIEnviaEmail.Repositories;
+using APIEnviaEmail.Services;
+using APIEnviaEmail.Utils;
 using Microsoft.AspNetCore.Mvc;
 
 namespace APIEnviaEmail.Controllers;
@@ -10,13 +12,15 @@ public class HoleriteController : ControllerBase
     private readonly HoleriteService _holeriteService;
     private readonly EnvioService _envioService;
     private readonly StorageService _storageService;
+    private readonly EmailService _emailService;
     private readonly FuncionarioService _funcionarioService;
 
-    public HoleriteController(HoleriteService holeriteService, EnvioService envioService, StorageService storageService, FuncionarioService funcionarioService)
+    public HoleriteController(HoleriteService holeriteService, EnvioService envioService, StorageService storageService, EmailService emailService, FuncionarioService funcionarioService)
     {
         _holeriteService = holeriteService;
         _envioService = envioService;
         _storageService = storageService;
+        _emailService = emailService;
         _funcionarioService = funcionarioService;
     }
 
@@ -42,14 +46,19 @@ public class HoleriteController : ControllerBase
             return NotFound("Envio não encontrado");
         }
 
-        var vetorNome = _holeriteService.SeparaHoleriteNome(envio.Nome);
-        var funcionario = await _funcionarioService.BuscaFuncionario(int.Parse(vetorNome[0]));
-        var mes = _holeriteService.BuscaMes(int.Parse(vetorNome[1]));
-
+        var informacoesHolerite = StringUtils.ExtraiInformacoesHolerite(envio.Nome);     
         var stream = await _storageService.DownloadArquivoAsync(envio.Nome);
-        
-        await _holeriteService.EnviaEmail(vetorNome[2], mes, funcionario, stream, envio.Nome);
+        var funcionario = await _funcionarioService.BuscarPorCodigo(informacoesHolerite.FuncionarioId);
+        var email = _emailService.EscreveEmail(funcionario.Nome, informacoesHolerite.TipoHolerite, informacoesHolerite.Mes);
 
-        return Ok("Email reenviado com sucesso!!");
+        if(await _emailService.EnviarEmailAsync(funcionario.Email, email, stream))
+        {
+            await _envioService.SalvaEnvio(envio.Nome, envio.HoleriteUrl, true, funcionario.FuncionarioId);
+
+            return Ok("Email reenviado com sucesso!!");
+        }
+
+        await _envioService.SalvaEnvio(envio.Nome, envio.HoleriteUrl, false, funcionario.FuncionarioId);
+        return BadRequest("Nao foi possivel reenviar o email");
     }
 }

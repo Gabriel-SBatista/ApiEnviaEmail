@@ -1,4 +1,5 @@
 using APIEnviaEmail.Context;
+using APIEnviaEmail.Repositories;
 using APIEnviaEmail.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -18,8 +19,10 @@ builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(sqlS
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<FuncionarioService>();
 builder.Services.AddScoped<HoleriteService>();
+builder.Services.AddScoped<IEnvioRepository, EnvioRepository>();
 builder.Services.AddScoped<EnvioService>();
 builder.Services.AddScoped<StorageService>();
+builder.Services.AddScoped<IFuncionarioRepository, FuncionarioRepository>();
 builder.Services.AddScoped<EmailService>(provider =>
 {
     string smtpServer = builder.Configuration.GetSection("SMTP").GetRequiredSection("Server").Value;

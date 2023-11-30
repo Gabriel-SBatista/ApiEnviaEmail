@@ -1,33 +1,41 @@
 ﻿using APIEnviaEmail.Context;
 using APIEnviaEmail.Models;
+using APIEnviaEmail.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace APIEnviaEmail.Services;
 
 public class EnvioService
 {
-    private readonly AppDbContext _context;
+    private readonly IEnvioRepository _repository;
 
-    public EnvioService(AppDbContext context)
+    public EnvioService(IEnvioRepository repository)
     {
-        _context = context;
+        _repository = repository;
     }
 
-    public async Task SalvaEnvio(Envio envio)
+    public async Task SalvaEnvio(string nomeArquivo, string url, bool sucesso, int funcionarioId)
     {
-        await _context.Envios.AddAsync(envio);
-        await _context.SaveChangesAsync();
+        Envio envio = new Envio();
+
+        envio.DataEnvio = DateTime.Now;
+        envio.Nome = nomeArquivo;
+        envio.HoleriteUrl = url;
+        envio.Sucesso = sucesso;
+        envio.Funcionario = funcionarioId;
+
+        await _repository.Criar(envio);
     }
 
     public async Task<List<Envio>> BuscaEnvios()
     {
-        var envios = await _context.Envios.ToListAsync();
+        var envios = await _repository.Buscar();
         return envios;
     }
 
     public async Task<Envio> BuscaEnvio(Guid id)
     {
-        var envio = await _context.Envios.FindAsync(id);
+        var envio = await _repository.BuscarPorId(id);
         return envio;
     }
 }

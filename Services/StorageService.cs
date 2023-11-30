@@ -45,4 +45,11 @@ public class StorageService
             return stream;
         }
     }
+
+    public string GetUrl(string nomeArquivo)
+    {
+        var url = _configuration.GetSection("AWSS3").GetRequiredSection("DefaultUrl").Value;
+        string holeriteUrl = $"{url}{nomeArquivo}";
+        return holeriteUrl;
+    }
 }

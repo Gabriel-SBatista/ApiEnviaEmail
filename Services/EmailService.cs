@@ -1,4 +1,7 @@
-﻿using System.IO.Compression;
+﻿using APIEnviaEmail.Models;
+using Microsoft.Extensions.Configuration;
+using System.Diagnostics.CodeAnalysis;
+using System.IO.Compression;
 using System.Net;
 using System.Net.Mail;
 
@@ -19,7 +22,7 @@ public class EmailService
         _smtpPassword = smtpPassword;
     }
 
-    public async Task<bool> EnviarEmailAsync(string destinatario, string assunto, string corpo, Stream file)
+    public async Task<bool> EnviarEmailAsync(string destinatario, Email email, Stream file)
     {
         try
         {
@@ -35,8 +38,8 @@ public class EmailService
 
                     mensagem.To.Add(destinatario);
 
-                    mensagem.Subject = assunto;
-                    mensagem.Body = corpo;
+                    mensagem.Subject = email.Assunto;
+                    mensagem.Body = email.Corpo;
                     mensagem.Attachments.Add(new Attachment(file, "holerite.pdf"));
 
                     await clienteSmtp.SendMailAsync(mensagem);
@@ -50,5 +53,15 @@ public class EmailService
             return false;
         }
         
+    }
+
+    public Email EscreveEmail(string nomeFuncionario, string tipoHolerite, string mes)
+    {
+        var email = new Email();
+
+        email.Corpo = $"Olá, {nomeFuncionario}\nSegue o seu recibo de {tipoHolerite} do mês de {mes} em anexo.\nAbraços,\nRH";
+        email.Assunto = $"Recibo de {tipoHolerite} do mês de {mes}";
+
+        return email;
     }
 }

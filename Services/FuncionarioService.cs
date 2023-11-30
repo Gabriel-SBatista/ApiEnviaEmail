@@ -1,43 +1,38 @@
 ﻿using APIEnviaEmail.Context;
 using APIEnviaEmail.Models;
+using APIEnviaEmail.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace APIEnviaEmail.Services;
 
 public class FuncionarioService
 {
-    private readonly AppDbContext _context;
+    private readonly IFuncionarioRepository _repository;
 
-    public FuncionarioService(AppDbContext context)
+    public FuncionarioService(IFuncionarioRepository repository)
     {
-        _context = context;
+        _repository = repository;
+    }
+
+    public async Task<Funcionario> BuscarPorCodigo(int cf)
+    {
+        var funcionario = await _repository.BuscarPorCodigoFuncionario(cf); 
+        return funcionario;
     }
 
     public async Task CadastraFuncionario(Funcionario funcionario)
     {
-        await _context.Funcionarios.AddAsync(funcionario);
-        await _context.SaveChangesAsync();
-    }
-
-    public async Task<Funcionario?> BuscaFuncionario(int id)
-    {
-        var funcionario = await _context.Funcionarios.FirstOrDefaultAsync(f => f.CodigoFuncionario == id);
-
-        return funcionario;
+        await _repository.Criar(funcionario);
     }
 
     public async Task<List<Funcionario>> BuscaFuncionarios()
     {
-        var funcionarios = await _context.Funcionarios.ToListAsync();
-
+        var funcionarios = await _repository.Buscar();
         return funcionarios;
     }
 
     public async Task DeletaFuncionario(int id)
     {
-        var funcionario = await _context.Funcionarios.FindAsync(id);
-
-        _context.Remove(funcionario);
-        await _context.SaveChangesAsync();
+        await _repository.Excluir(id);
     }
 }
