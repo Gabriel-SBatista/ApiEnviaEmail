@@ -10,6 +10,15 @@ public class Envio
         Funcionario = null;
     }
 
+    public Envio(string nome, string url, bool sucesso, int funcionario, DateTime data)
+    {
+        Nome = nome;
+        HoleriteUrl = url;
+        Funcionario = funcionario;
+        Sucesso= sucesso;
+        DataEnvio = data;
+    }
+
     public Guid EnvioId { get; set; }
     [Required]
     public string Nome { get; set; }

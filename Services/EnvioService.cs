@@ -14,7 +14,7 @@ public class EnvioService
         _repository = repository;
     }
 
-    public async Task SalvaEnvio(string nomeArquivo, string url, bool sucesso, int funcionarioId)
+    public async Task<Envio> SalvaEnvio(string nomeArquivo, string url, bool sucesso, int funcionarioId)
     {
         Envio envio = new Envio();
 
@@ -25,6 +25,8 @@ public class EnvioService
         envio.Funcionario = funcionarioId;
 
         await _repository.Criar(envio);
+
+        return envio;
     }
 
     public async Task<List<Envio>> BuscaEnvios()
